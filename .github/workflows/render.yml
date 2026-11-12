@@ -13,6 +13,10 @@ on:
         description: "并行渲染标签数（4 核用 3，偶发崩溃就降到 2）"
         required: true
         default: "3"
+      footage:
+        description: "实拍素材：release=从 Release footage-1 下载；none=不出实拍层"
+        required: true
+        default: "none"
   push:
     branches: [main]
 
@@ -43,6 +47,17 @@ jobs:
           restore-keys: |
             remotion-browser-${{ runner.os }}-
 
+      - name: Fetch footage (optional)
+        if: github.event_name == 'workflow_dispatch' && inputs.footage == 'release'
+        run: |
+          mkdir -p public/footage
+          BASE="https://github.com/${{ github.repository }}/releases/download/footage-1"
+          for f in paintpour_1 paperswirl_1 pigment_2 fabric_2; do
+            echo "downloading $f.mp4"
+            curl -L --fail --retry 3 -o "public/footage/$f.mp4" "$BASE/$f.mp4"
+          done
+          ls -l public/footage
+
       - name: Render
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -50,7 +65,7 @@ jobs:
           CONCURRENCY: ${{ inputs.concurrency || '3' }}
           # 仓库里没有 public/footage（素材不走 Git），默认关掉实拍层，
           # 保证云端一定出片；素材上传到 public/footage 后把这里改成 'true'
-          REMOTION_HAS_FOOTAGE: ${{ vars.REMOTION_HAS_FOOTAGE || 'false' }}
+          REMOTION_HAS_FOOTAGE: ${{ inputs.footage == 'release' && 'true' || (vars.REMOTION_HAS_FOOTAGE || 'false') }}
         run: |
           npx remotion render src/index.ts "$COMPOSITION" out/video.mp4 \
             --concurrency="$CONCURRENCY" \
