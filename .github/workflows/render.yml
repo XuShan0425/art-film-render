@@ -1,0 +1,63 @@
+name: Render video
+
+# 手动触发：GitHub 仓库 Actions 页 -> Render video -> Run workflow
+# 想省额度就用手动触发；push 自动渲染默认关闭（删掉 Render 那步的 if 行即可打开）
+on:
+  workflow_dispatch:
+    inputs:
+      composition:
+        description: "Composition ID（见 src/Root.tsx）"
+        required: true
+        default: "Film"
+      concurrency:
+        description: "并行渲染标签数（4 核用 3，偶发崩溃就降到 2）"
+        required: true
+        default: "3"
+  push:
+    branches: [main]
+
+concurrency:
+  group: render-video
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Remotion browser (Chrome Headless Shell)
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.remotion
+          key: remotion-browser-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            remotion-browser-${{ runner.os }}-
+
+      - name: Render
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          COMPOSITION: ${{ inputs.composition || 'Film' }}
+          CONCURRENCY: ${{ inputs.concurrency || '3' }}
+        run: |
+          npx remotion render src/index.ts "$COMPOSITION" out/video.mp4 \
+            --concurrency="$CONCURRENCY" \
+            --log=verbose
+
+      - name: Upload MP4
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-output
+          path: out/video.mp4
+          retention-days: 3
+          if-no-files-found: warn

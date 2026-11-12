@@ -1,0 +1,14 @@
+.film {
+  --ink: #e8ddc8;
+  --ink-dim: #8d8577;
+  --bg: #0a0a0b;
+  --paper: #161619;
+}
+.film * { box-sizing: border-box; }
+.film .mono {
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-weight: 400;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+.film .serif { font-family: 'NotoSerifSCVF', serif; }
