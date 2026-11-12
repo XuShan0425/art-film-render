@@ -48,6 +48,9 @@ jobs:
         env:
           COMPOSITION: ${{ inputs.composition || 'Film' }}
           CONCURRENCY: ${{ inputs.concurrency || '3' }}
+          # 仓库里没有 public/footage（素材不走 Git），默认关掉实拍层，
+          # 保证云端一定出片；素材上传到 public/footage 后把这里改成 'true'
+          REMOTION_HAS_FOOTAGE: ${{ vars.REMOTION_HAS_FOOTAGE || 'false' }}
         run: |
           npx remotion render src/index.ts "$COMPOSITION" out/video.mp4 \
             --concurrency="$CONCURRENCY" \

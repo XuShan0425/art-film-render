@@ -57,7 +57,14 @@ const Wheel: React.FC<{cx:number;cy:number;r:number;grow:number;spin:number;labe
   );
 };
 
-const Shot: React.FC<{src:string; from:number; a:number; scale:number; tint?:string; tintA?:number}> = ({src,from,a,scale,tint='#000',tintA=0}) => (
+// 实拍素材默认不进 Git（体积大、有版权顾虑）。这里从 build 时的开关决定：
+// - 本地：public/footage 存在，正常播放实拍层；
+// - 云端未上传素材：HAS_FOOTAGE=false，Shot 直接不渲染，只留 SV G 仪器层，保证成片能出。
+// 上传素材后（见 README-CLOUD-RENDER.md「实拍素材怎么上云」）自动恢复。
+const HAS_FOOTAGE = process.env.REMOTION_HAS_FOOTAGE !== 'false';
+
+const Shot: React.FC<{src:string; from:number; a:number; scale:number; tint?:string; tintA?:number}> = ({src,from,a,scale,tint='#000',tintA=0}) =>
+  !HAS_FOOTAGE ? null : (
   <AbsoluteFill style={{opacity:a}}>
     <AbsoluteFill style={{transform:'scale('+scale+')'}}>
       <OffthreadVideo src={staticFile(src)} startFrom={from} muted style={{width:'100%',height:'100%',objectFit:'cover'}}/>

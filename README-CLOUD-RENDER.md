@@ -64,3 +64,20 @@ tar -cf footage.tar public/footage
 gh release create footage-v1 footage.tar
 ```
 然后在 workflow 的 `npm ci` 后加一步下载并解包到 `public/footage`。仓库只留代码，git 历史保持小而快。
+## 实拍素材怎么上云
+
+`public/footage/` 被 `.gitignore` 排除了（58 MB 实拍片段，且素材有版权顾虑），所以云端默认**没有实拍层**：`Chroma` 的四个 `<Shot>` 会整段跳过，只剩 SVG 仪器层和字号动画——能出片，但没实拍。`Film` 不用实拍，不受影响。
+
+要带实拍出片，二选一：
+
+1. **Release 挂素材（推荐，免费、仓库不变胖）**：把 `public/footage/*.mp4` 传到一个 Release，然后在 workflow 的 Render 步骤前加一步 `curl -L -o public/footage/<name>.mp4 <release-url>` 按需下载；再把仓库变量 `REMOTION_HAS_FOOTAGE` 设为 `true`。
+2. **直接进仓库**：从 `.gitignore` 删掉 `public/footage/`，`git add` 那 58 MB 素材。公共仓库能放，但每次 checkout 都要下载，习惯上不推荐。
+
+改完把仓库 Settings → Secrets and variables → Actions → Variables 里的 `REMOTION_HAS_FOOTAGE` 设成 `true`，实拍层就会回来。
+
+## 云端专属的坑（本机不报、CI 必炸）
+
+- **不要 import `out/` 里的文件**：`out/` 是构建产物、不在 Git 里。曾经 `src/lib/glyphData.ts` 从 `../../out/glyph-MO.json` 读取，本机没事，CI 打包直接 `Module not found`。数据文件要放 `src/lib/` 下随源码一起提交。
+- **不要在 `remotion.config.ts` 写死本机浏览器路径**，Linux Runner 上没有那个 Windows exe。
+- 中文字体优先用 `public/fonts/` 下的 woff2 子集，25MB 级可变字体别进仓库。
+- 一次成功的日志里会看到 `Encoded 930/930` 和 Artifact `render-output`（本次 15.7 MB，Film 31 秒成片，云端约 2 分 30 秒跑完）。
